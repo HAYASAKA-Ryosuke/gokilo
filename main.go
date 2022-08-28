@@ -127,7 +127,7 @@ func editorUpdateRow(row int) {
 }
 
 func editorInsertNewline(s tcell.Screen) {
-	if currentColumn == 0 {
+	if currentColumn == 0 && editorRows[currentRow].text == "" {
 		currentRow++
 		editorInsertRow(s, currentRow, "")
 	} else {
