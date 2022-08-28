@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 )
 
 type EditorRow struct {
-	text       string // データとしてもっておく文字列
-	renderText string // 表示用の文字列
+	text               string // データとしてもっておく文字列
+	renderText         string // 表示用の文字列
+	renderRowOffset    int
+	renderColumnLength int
 }
 
 var (
@@ -23,7 +26,7 @@ var (
 	editorBuf            = ""
 	rowOffset            = 0
 	columnOffset         = 0
-	editorRows           = []EditorRow{EditorRow{"", ""}}
+	editorRows           = []EditorRow{}
 	defStyle             = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 	windowSizeColumn     = 0
 	windowSizeRow        = 0
@@ -31,6 +34,10 @@ var (
 
 func drawContent(s tcell.Screen, column, row int, text string) {
 	for _, r := range []rune(text) {
+		if windowSizeColumn <= column {
+			row++
+			column = 0
+		}
 		s.SetContent(column, row, r, nil, defStyle)
 		column++
 	}
@@ -38,25 +45,24 @@ func drawContent(s tcell.Screen, column, row int, text string) {
 }
 
 func drawStatusBar(s tcell.Screen) {
-	drawContent(s, 0, windowSizeRow-1, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG))
+	DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
+	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG))
 }
 
 func editorDrawRows(s tcell.Screen) {
 	//for y := currentRow; y < windowSizeRow; y++ {
 	//	drawContent(s, 0, y, strconv.Itoa(y+1))
 	//}
-	drawContent(s, renderColumn, renderRow, editorRows[currentRow].renderText)
+	row := 0
+	for fileRow := rowOffset; fileRow < windowSizeRow-1; fileRow++ {
+		if len(editorRows) <= fileRow {
+			break
+		}
+		drawContent(s, 0, row, editorRows[fileRow].renderText)
+		row += editorRows[fileRow].renderRowOffset
+		row++
+	}
 	drawStatusBar(s)
-}
-
-func editorAppendRow(c string) {
-	editorRowLength := len(editorRows) - 1
-	editorRows[editorRowLength].text += c
-	updateRenderRow(editorRows[editorRowLength])
-}
-
-func updateRenderRow(row EditorRow) {
-	row.renderText = row.text
 }
 
 func editorScroll(c tcell.Screen) {
@@ -72,9 +78,68 @@ func getWindowSize(s tcell.Screen) (int, int) {
 	return s.Size()
 }
 
+func updateRenderRowAndColumn(s tcell.Screen) {
+	rowText := editorRows[currentRow].renderText
+	renderColumn = currentColumn
+	renderRow = 0
+	for row := 0; row < currentRow; row++ {
+		renderRow += editorRows[row].renderRowOffset + 1
+	}
+	if len(rowText) > windowSizeColumn {
+		renderRow += int(currentColumn / windowSizeColumn)
+		renderColumn = currentColumn % windowSizeColumn
+	}
+}
+
 func editorRefreshScreen(s tcell.Screen) {
 	editorScroll(s)
 	s.Clear()
+	updateRenderRowAndColumn(s)
+	editorDrawRows(s)
+}
+
+func editorInsertText(row, column int, text string) {
+	beforeText := editorRows[row].text[:column]
+	afterText := editorRows[row].text[column:]
+	editorRows[row].text = beforeText + text + afterText
+	column++
+	currentColumn = column
+	editorUpdateRow(row)
+}
+
+func editorInsertRow(s tcell.Screen, row int, text string) {
+	if row == len(editorRows)-1 {
+		editorRows = append(editorRows, EditorRow{text, "", 0, 0})
+	} else {
+		beforeRows := editorRows[:row]
+		afterRows := editorRows[row:]
+		beforeRows = append(beforeRows, EditorRow{text, "", 0, 0})
+		editorRows = append(beforeRows, afterRows...)
+
+	}
+	editorUpdateRow(currentRow)
+}
+
+func editorUpdateRow(row int) {
+	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", "        ", -1)
+	editorRows[row].renderColumnLength = len(editorRows[row].renderText)
+	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
+}
+
+func editorInsertNewline(s tcell.Screen) {
+	if currentColumn == 0 {
+		currentRow++
+		editorInsertRow(s, currentRow, "")
+	} else {
+		row := editorRows[currentRow]
+		beforeText := row.text[currentColumn:]
+		editorInsertRow(s, currentRow+1, beforeText)
+		editorRows[currentRow].text = row.text[:currentColumn]
+		editorUpdateRow(currentRow)
+		currentRow++
+	}
+	currentColumn = 0
+	editorUpdateRow(currentRow)
 }
 
 func quit(s tcell.Screen) {
@@ -90,6 +155,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
 	} else if ev.Key() == tcell.KeyEnter {
+		editorInsertNewline(s)
 	} else if ev.Key() == tcell.KeyLeft {
 		if currentColumn != 0 {
 			currentColumn--
@@ -98,26 +164,32 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 			currentRow--
 		}
 	} else if ev.Key() == tcell.KeyRight {
-		if currentColumn != windowSizeColumn-1 {
+		if currentColumn != windowSizeColumn-1 && currentColumn < len(editorRows[currentRow].text) {
 			currentColumn++
 		} else if currentColumn == windowSizeColumn-1 && currentRow != windowSizeRow-1 {
 			currentColumn = 0
 			currentRow++
 		}
 	} else if ev.Key() == tcell.KeyDown {
-		if currentRow != windowSizeRow-1 {
+		if len(editorRows) > currentRow+1 {
 			currentRow++
+			renderRow++
+		}
+
+		if len(editorRows) < currentRow+1 {
+			editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 		}
 	} else if ev.Key() == tcell.KeyUp {
 		if currentRow != 0 {
 			currentRow--
 		}
 	} else {
+		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
 	}
 }
 
 func initialize(s tcell.Screen) {
-
+	editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 }
 
 func main() {
@@ -143,12 +215,14 @@ func main() {
 	fmt.Println(oy)
 
 	windowSizeColumn, windowSizeRow = getWindowSize(s)
+	windowSizeRow--
+
+	initialize(s)
 
 	for {
 
 		editorRefreshScreen(s)
-		s.ShowCursor(currentColumn, currentRow)
-		editorDrawRows(s)
+		s.ShowCursor(renderColumn, renderRow)
 		// Update screen
 		s.Show()
 
@@ -160,6 +234,7 @@ func main() {
 		case *tcell.EventResize:
 			s.Sync()
 			windowSizeColumn, windowSizeRow = getWindowSize(s)
+			windowSizeRow--
 		case *tcell.EventKey:
 			editorProcessKeyPress(s, ev)
 		case *tcell.EventMouse:
