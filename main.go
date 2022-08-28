@@ -143,9 +143,11 @@ func editorInsertNewline(s tcell.Screen) {
 }
 
 func editorDeleteChar(s tcell.Screen) {
-	editorRows[currentRow].text = editorRows[currentRow].text[:currentColumn-1] + editorRows[currentRow].text[currentColumn:]
-	currentColumn--
-	editorUpdateRow(currentRow)
+	if currentColumn != 0 {
+		editorRows[currentRow].text = editorRows[currentRow].text[:currentColumn-1] + editorRows[currentRow].text[currentColumn:]
+		currentColumn--
+		editorUpdateRow(currentRow)
+	}
 }
 
 func quit(s tcell.Screen) {
