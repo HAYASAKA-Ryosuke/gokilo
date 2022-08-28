@@ -142,6 +142,12 @@ func editorInsertNewline(s tcell.Screen) {
 	editorUpdateRow(currentRow)
 }
 
+func editorDeleteChar(s tcell.Screen) {
+	editorRows[currentRow].text = editorRows[currentRow].text[:currentColumn-1] + editorRows[currentRow].text[currentColumn:]
+	currentColumn--
+	editorUpdateRow(currentRow)
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -154,6 +160,8 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyCtrlQ {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
+	} else if ev.Key() == tcell.KeyBackspace2 {
+		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
 		editorInsertNewline(s)
 	} else if ev.Key() == tcell.KeyLeft {
