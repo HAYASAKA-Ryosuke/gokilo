@@ -83,10 +83,11 @@ func getWindowSize(s tcell.Screen) (int, int) {
 func getColumnCount(text string) int {
 	count := 0
 	for _, c := range []rune(text) {
-		if len(string(c)) != 1 {
+		if len(string(c)) == 1 {
 			count++
+		} else {
+			count += 2
 		}
-		count++
 	}
 	return count
 }
