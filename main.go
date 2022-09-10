@@ -79,7 +79,7 @@ func getWindowSize(s tcell.Screen) (int, int) {
 	return s.Size()
 }
 
-func getColumnCount(text string) int {
+func getRenderStringCount(text string) int {
 	count := 0
 	for _, c := range []rune(text) {
 		if len(string(c)) == 1 {
@@ -91,15 +91,19 @@ func getColumnCount(text string) int {
 	return count
 }
 
+func getStringCount(text string) int {
+	return len([]rune(text))
+}
+
 func updateRenderRowAndColumn(s tcell.Screen) {
 	rowText := []rune(editorRows[currentRow].renderText)
-	renderColumn = getColumnCount(string(rowText[:currentColumn]))
+	renderColumn = getRenderStringCount(string(rowText[:currentColumn]))
 	renderRow = 0
 	for row := 0; row < currentRow; row++ {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
-	if getColumnCount(string(rowText)) > windowSizeColumn {
+	if getRenderStringCount(string(rowText)) > windowSizeColumn {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
 	}
@@ -139,7 +143,7 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 
 func editorUpdateRow(row int) {
 	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", "        ", -1)
-	editorRows[row].renderColumnLength = getColumnCount(editorRows[row].renderText)
+	editorRows[row].renderColumnLength = getRenderStringCount(editorRows[row].renderText)
 	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
 }
 
@@ -192,7 +196,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 			currentRow--
 		}
 	} else if ev.Key() == tcell.KeyRight {
-		if currentColumn != windowSizeColumn-1 && currentColumn < len(editorRows[currentRow].text) {
+		if currentColumn != windowSizeColumn-1 && currentColumn < getStringCount(editorRows[currentRow].text) {
 			currentColumn++
 		} else if currentColumn == windowSizeColumn-1 && currentRow != windowSizeRow-1 {
 			currentColumn = 0
