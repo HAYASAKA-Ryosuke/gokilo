@@ -5,8 +5,10 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-runewidth"
 )
 
 type EditorRow struct {
@@ -39,13 +41,13 @@ func drawContent(s tcell.Screen, column, row int, text string) {
 			column = 0
 		}
 		s.SetContent(column, row, r, nil, defStyle)
-		column++
+		column += runewidth.RuneWidth(r)
 	}
 
 }
 
 func drawStatusBar(s tcell.Screen) {
-	DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
+	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
 	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG))
 }
 
@@ -78,13 +80,25 @@ func getWindowSize(s tcell.Screen) (int, int) {
 	return s.Size()
 }
 
+func getColumnCount(text string) int {
+	count := 0
+	for _, c := range []rune(text) {
+		if len(string(c)) != 1 {
+			count++
+		}
+		count++
+	}
+	return count
+}
+
 func updateRenderRowAndColumn(s tcell.Screen) {
-	rowText := editorRows[currentRow].renderText
-	renderColumn = currentColumn
+	rowText := []rune(editorRows[currentRow].renderText)
+	renderColumn = getColumnCount(string(rowText[:currentColumn]))
 	renderRow = 0
 	for row := 0; row < currentRow; row++ {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
+
 	if len(rowText) > windowSizeColumn {
 		renderRow += int(currentColumn / windowSizeColumn)
 		renderColumn = currentColumn % windowSizeColumn
@@ -99,8 +113,11 @@ func editorRefreshScreen(s tcell.Screen) {
 }
 
 func editorInsertText(row, column int, text string) {
-	beforeText := editorRows[row].text[:column]
-	afterText := editorRows[row].text[column:]
+
+	runes := []rune(editorRows[row].text)
+
+	beforeText := string(runes[:column])
+	afterText := string(runes[column:])
 	editorRows[row].text = beforeText + text + afterText
 	column++
 	currentColumn = column
@@ -122,7 +139,7 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 
 func editorUpdateRow(row int) {
 	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", "        ", -1)
-	editorRows[row].renderColumnLength = len(editorRows[row].renderText)
+	editorRows[row].renderColumnLength = utf8.RuneCountInString(editorRows[row].renderText)
 	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
 }
 
@@ -131,10 +148,10 @@ func editorInsertNewline(s tcell.Screen) {
 		currentRow++
 		editorInsertRow(s, currentRow, "")
 	} else {
-		row := editorRows[currentRow]
-		beforeText := row.text[currentColumn:]
-		editorInsertRow(s, currentRow+1, beforeText)
-		editorRows[currentRow].text = row.text[:currentColumn]
+		rowText := []rune(editorRows[currentRow].text)
+		beforeText := rowText[currentColumn:]
+		editorInsertRow(s, currentRow+1, string(beforeText))
+		editorRows[currentRow].text = string(rowText[:currentColumn])
 		editorUpdateRow(currentRow)
 		currentRow++
 	}
