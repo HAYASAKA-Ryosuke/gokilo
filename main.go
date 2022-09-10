@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-runewidth"
@@ -100,9 +99,9 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
-	if len(rowText) > windowSizeColumn {
-		renderRow += int(currentColumn / windowSizeColumn)
-		renderColumn = currentColumn % windowSizeColumn
+	if getColumnCount(string(rowText)) > windowSizeColumn {
+		renderRow += int(renderColumn / windowSizeColumn)
+		renderColumn = renderColumn % windowSizeColumn
 	}
 }
 
@@ -140,7 +139,7 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 
 func editorUpdateRow(row int) {
 	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", "        ", -1)
-	editorRows[row].renderColumnLength = utf8.RuneCountInString(editorRows[row].renderText)
+	editorRows[row].renderColumnLength = getColumnCount(editorRows[row].renderText)
 	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
 }
 
