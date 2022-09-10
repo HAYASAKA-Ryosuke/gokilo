@@ -166,7 +166,8 @@ func editorInsertNewline(s tcell.Screen) {
 func editorDeleteChar(s tcell.Screen) {
 	// TODO: 0列目のときバックスペースを押下するとその行の文字列が一つ上の行の末尾に結合されるようにすること
 	if currentColumn != 0 {
-		editorRows[currentRow].text = editorRows[currentRow].text[:currentColumn-1] + editorRows[currentRow].text[currentColumn:]
+		runes := []rune(editorRows[currentRow].text)
+		editorRows[currentRow].text = string(runes[:currentColumn-1]) + string(runes[currentColumn:])
 		currentColumn--
 		editorUpdateRow(currentRow)
 	}
