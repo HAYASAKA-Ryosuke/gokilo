@@ -215,6 +215,27 @@ func keyDown() {
 	}
 }
 
+func keyLeft() {
+	if currentColumn != 0 {
+		currentColumn--
+	} else if currentColumn == 0 && currentRow != 0 {
+		currentRow--
+		currentColumn = getStringCount(editorRows[currentRow].text)
+		editorUpdateRow(currentRow)
+	}
+}
+
+func keyRight() {
+	if currentColumn < getStringCount(editorRows[currentRow].text) {
+		currentColumn++
+		editorUpdateRow(currentRow)
+	} else if currentRow < len(editorRows)-1 {
+		currentColumn = 0
+		currentRow++
+		editorUpdateRow(currentRow)
+	}
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -232,22 +253,9 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyEnter {
 		editorInsertNewline(s)
 	} else if ev.Key() == tcell.KeyLeft {
-		if currentColumn != 0 {
-			currentColumn--
-		} else if currentColumn == 0 && currentRow != 0 {
-			currentRow--
-			currentColumn = getStringCount(editorRows[currentRow].text)
-			editorUpdateRow(currentRow)
-		}
+		keyLeft()
 	} else if ev.Key() == tcell.KeyRight {
-		if currentColumn < getStringCount(editorRows[currentRow].text) {
-			currentColumn++
-			editorUpdateRow(currentRow)
-		} else if currentRow < len(editorRows)-1 {
-			currentColumn = 0
-			currentRow++
-			editorUpdateRow(currentRow)
-		}
+		keyRight()
 	} else if ev.Key() == tcell.KeyDown {
 		keyDown()
 	} else if ev.Key() == tcell.KeyUp {
