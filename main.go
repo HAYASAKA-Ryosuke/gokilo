@@ -163,6 +163,26 @@ func editorInsertNewline(s tcell.Screen) {
 	editorUpdateRow(currentRow)
 }
 
+func deleteRow() {
+	currentRow--
+	for i := currentRow; i < len(editorRows)-1; i++ {
+		if currentRow == i {
+			currentColumn = getRenderStringCount(editorRows[i].text)
+			editorRows[i].text += editorRows[i+1].text
+			editorRows[i].renderText += editorRows[i+1].renderText
+		} else {
+			editorRows[i] = editorRows[i+1]
+		}
+		editorUpdateRow(i)
+	}
+
+	// 最後の行を削除
+	editorRows = editorRows[:len(editorRows)-1]
+	for i := 0; i < len(editorRows); i++ {
+		editorUpdateRow(i)
+	}
+}
+
 func editorDeleteChar(s tcell.Screen) {
 	// TODO: 0列目のときバックスペースを押下するとその行の文字列が一つ上の行の末尾に結合されるようにすること
 	if currentColumn != 0 {
@@ -170,6 +190,10 @@ func editorDeleteChar(s tcell.Screen) {
 		editorRows[currentRow].text = string(runes[:currentColumn-1]) + string(runes[currentColumn:])
 		currentColumn--
 		editorUpdateRow(currentRow)
+	} else {
+		if currentRow != 0 {
+			deleteRow()
+		}
 	}
 }
 
@@ -207,6 +231,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		if len(editorRows) > currentRow+1 {
 			currentRow++
 			renderRow++
+			currentColumn = getRenderStringCount(editorRows[currentRow].renderText)
 		}
 
 		if len(editorRows) < currentRow+1 {
@@ -215,6 +240,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyUp {
 		if currentRow != 0 {
 			currentRow--
+			currentColumn = getRenderStringCount(editorRows[currentRow].renderText)
 		}
 	} else {
 		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
