@@ -226,7 +226,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		if len(editorRows) > currentRow+1 {
 			currentRow++
 			renderRow++
-			currentColumn = getRenderStringCount(editorRows[currentRow].renderText)
+			currentColumn = getStringCount(editorRows[currentRow].renderText)
 		}
 
 		if len(editorRows) < currentRow+1 {
@@ -235,7 +235,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyUp {
 		if currentRow != 0 {
 			currentRow--
-			currentColumn = getRenderStringCount(editorRows[currentRow].renderText)
+			currentColumn = getStringCount(editorRows[currentRow].renderText)
 		}
 	} else {
 		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
