@@ -195,8 +195,8 @@ func editorDeleteChar(s tcell.Screen) {
 func keyUp() {
 	if currentRow != 0 {
 		currentRow--
-		if getStringCount(editorRows[currentRow].renderText) < currentColumn {
-			currentColumn = getStringCount(editorRows[currentRow].renderText)
+		if getStringCount(editorRows[currentRow].text) < currentColumn {
+			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
 	}
 }
@@ -205,8 +205,8 @@ func keyDown() {
 	if len(editorRows) > currentRow+1 {
 		currentRow++
 		renderRow++
-		if getStringCount(editorRows[currentRow].renderText) < currentColumn {
-			currentColumn = getStringCount(editorRows[currentRow].renderText)
+		if getStringCount(editorRows[currentRow].text) < currentColumn {
+			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
 	}
 
