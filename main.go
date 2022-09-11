@@ -235,8 +235,9 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		if currentColumn != 0 {
 			currentColumn--
 		} else if currentColumn == 0 && currentRow != 0 {
-			currentColumn = 0
 			currentRow--
+			currentColumn = getStringCount(editorRows[currentRow].text)
+			editorUpdateRow(currentRow)
 		}
 	} else if ev.Key() == tcell.KeyRight {
 		if currentColumn < getStringCount(editorRows[currentRow].text) {
