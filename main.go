@@ -201,6 +201,20 @@ func keyUp() {
 	}
 }
 
+func keyDown() {
+	if len(editorRows) > currentRow+1 {
+		currentRow++
+		renderRow++
+		if getStringCount(editorRows[currentRow].renderText) < currentColumn {
+			currentColumn = getStringCount(editorRows[currentRow].renderText)
+		}
+	}
+
+	if len(editorRows) < currentRow+1 {
+		editorRows = append(editorRows, EditorRow{"", "", 0, 0})
+	}
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -232,15 +246,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 			currentRow++
 		}
 	} else if ev.Key() == tcell.KeyDown {
-		if len(editorRows) > currentRow+1 {
-			currentRow++
-			renderRow++
-			currentColumn = getStringCount(editorRows[currentRow].renderText)
-		}
-
-		if len(editorRows) < currentRow+1 {
-			editorRows = append(editorRows, EditorRow{"", "", 0, 0})
-		}
+		keyDown()
 	} else if ev.Key() == tcell.KeyUp {
 		keyUp()
 	} else {
