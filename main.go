@@ -154,7 +154,7 @@ func editorInsertNewline(s tcell.Screen) {
 	} else {
 		rowText := []rune(editorRows[currentRow].text)
 		beforeText := rowText[currentColumn:]
-		editorInsertRow(s, currentRow+1, string(beforeText))
+		editorInsertRow(s, currentRow, string(beforeText))
 		editorRows[currentRow].text = string(rowText[:currentColumn])
 		editorUpdateRow(currentRow)
 		currentRow++
