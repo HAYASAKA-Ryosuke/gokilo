@@ -192,6 +192,15 @@ func editorDeleteChar(s tcell.Screen) {
 	}
 }
 
+func keyUp() {
+	if currentRow != 0 {
+		currentRow--
+		if getStringCount(editorRows[currentRow].renderText) < currentColumn {
+			currentColumn = getStringCount(editorRows[currentRow].renderText)
+		}
+	}
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -233,10 +242,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 			editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 		}
 	} else if ev.Key() == tcell.KeyUp {
-		if currentRow != 0 {
-			currentRow--
-			currentColumn = getStringCount(editorRows[currentRow].renderText)
-		}
+		keyUp()
 	} else {
 		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
 	}
