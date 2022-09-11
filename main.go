@@ -148,17 +148,12 @@ func editorUpdateRow(row int) {
 }
 
 func editorInsertNewline(s tcell.Screen) {
-	if currentColumn == 0 && editorRows[currentRow].text == "" {
-		currentRow++
-		editorInsertRow(s, currentRow, "")
-	} else {
-		rowText := []rune(editorRows[currentRow].text)
-		beforeText := rowText[currentColumn:]
-		editorInsertRow(s, currentRow, string(beforeText))
-		editorRows[currentRow].text = string(rowText[:currentColumn])
-		editorUpdateRow(currentRow)
-		currentRow++
-	}
+	rowText := []rune(editorRows[currentRow].text)
+	beforeText := rowText[currentColumn:]
+	editorInsertRow(s, currentRow, string(beforeText))
+	editorRows[currentRow].text = string(rowText[:currentColumn])
+	editorUpdateRow(currentRow)
+	currentRow++
 	currentColumn = 0
 	editorUpdateRow(currentRow)
 }
