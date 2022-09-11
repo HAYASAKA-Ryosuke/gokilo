@@ -242,6 +242,10 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		if currentColumn < getStringCount(editorRows[currentRow].text) {
 			currentColumn++
 			editorUpdateRow(currentRow)
+		} else if currentRow < len(editorRows)-1 {
+			currentColumn = 0
+			currentRow++
+			editorUpdateRow(currentRow)
 		}
 	} else if ev.Key() == tcell.KeyDown {
 		keyDown()
