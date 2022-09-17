@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"gokilo/highlight"
+	"gokilo/lsp"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -18,36 +21,41 @@ type EditorRow struct {
 }
 
 var (
-	DEBUG                = "debug"
-	currentColumn        = 0
-	currentRow           = 0
-	renderColumn         = 0
-	renderRow            = 0
-	autoCompletionEnable = false
-	editorBuf            = ""
-	rowOffset            = 0
-	columnOffset         = 0
-	editorRows           = []EditorRow{}
-	defStyle             = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
-	windowSizeColumn     = 0
-	windowSizeRow        = 0
+	SYNTAX_HIGHLIGHT_STYLE = "monokai"
+	LANGUAGE               = "go"
+	DEBUG                  = "debug"
+	currentColumn          = 0
+	currentRow             = 0
+	renderColumn           = 0
+	renderRow              = 0
+	autoCompletionEnable   = false
+	editorBuf              = ""
+	rowOffset              = 0
+	columnOffset           = 0
+	editorRows             = []EditorRow{}
+	defStyle               = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
+	windowSizeColumn       = 0
+	windowSizeRow          = 0
 )
 
-func drawContent(s tcell.Screen, column, row int, text string) {
+func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) int {
+
+	//textColorStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.PaletteColor(1))
 	for _, r := range []rune(text) {
 		if windowSizeColumn <= column {
 			row++
 			column = 0
 		}
-		s.SetContent(column, row, r, nil, defStyle)
+		s.SetContent(column, row, r, nil, textColorStyle)
 		column += runewidth.RuneWidth(r)
 	}
+	return column
 
 }
 
 func drawStatusBar(s tcell.Screen) {
 	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
-	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG))
+	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG), defStyle)
 }
 
 func editorDrawRows(s tcell.Screen) {
@@ -59,7 +67,15 @@ func editorDrawRows(s tcell.Screen) {
 		if len(editorRows) <= fileRow {
 			break
 		}
-		drawContent(s, 0, row, editorRows[fileRow].renderText)
+		renderTextList, _ := highlight.Highlight(editorRows[fileRow].renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
+		column := 0
+		for _, renderText := range renderTextList {
+			textColor := strings.Replace(renderText.Color, "\x1b[38;5;", "", -1)
+			textColor = strings.Replace(textColor, "m", "", -1)
+			colorCode, _ := strconv.Atoi(textColor)
+			textStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.PaletteColor(colorCode))
+			column = drawContent(s, column, row, renderText.Text, textStyle)
+		}
 		row += editorRows[fileRow].renderRowOffset
 		row++
 	}
