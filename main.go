@@ -55,7 +55,7 @@ func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tc
 
 func drawStatusBar(s tcell.Screen) {
 	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
-	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG), defStyle)
+	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %d, %s", currentColumn, currentRow, renderColumn, DEBUG), defStyle)
 }
 
 func convertAnsiColorCodeFormatToInt(ansiColorCode string) (int, error) {
@@ -130,13 +130,17 @@ func getStringCount(text string) int {
 
 func updateRenderRowAndColumn(s tcell.Screen) {
 	rowText := []rune(editorRows[currentRow].renderText)
-	renderColumn = getRenderStringCount(string(rowText[:currentColumn]))
+
+	// タブ1つはスペース8個分に相当するのでその分も調整してrenderColumnを決定する必要がある
+	tabLength := strings.Count(editorRows[currentRow].text[:currentColumn], "\t")
+	renderColumn = getRenderStringCount(string(rowText[:currentColumn])) + tabLength*8 - tabLength
+
 	renderRow = 0
 	for row := 0; row < currentRow; row++ {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
-	if getRenderStringCount(string(rowText)) > windowSizeColumn {
+	if getRenderStringCount(string(rowText))+tabLength*8-tabLength > windowSizeColumn {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
 	}
