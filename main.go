@@ -140,6 +140,7 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
+	tabLength = strings.Count(editorRows[currentRow].text, "\t")
 	if getRenderStringCount(string(rowText))+tabLength*8-tabLength > windowSizeColumn {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
