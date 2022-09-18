@@ -38,7 +38,7 @@ var (
 	windowSizeRow          = 0
 )
 
-func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) int {
+func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) (int, int) {
 
 	//textColorStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.PaletteColor(1))
 	for _, r := range []rune(text) {
@@ -49,7 +49,7 @@ func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tc
 		s.SetContent(column, row, r, nil, textColorStyle)
 		column += runewidth.RuneWidth(r)
 	}
-	return column
+	return column, row
 
 }
 
@@ -91,7 +91,7 @@ func editorDrawRows(s tcell.Screen) {
 				backgroundColorCode, _ := convertAnsiColorCodeFormatToInt(renderText.BackgroundColor)
 				textStyle = textStyle.Background(tcell.PaletteColor(backgroundColorCode))
 			}
-			column = drawContent(s, column, row, renderText.Text, textStyle)
+			column, row = drawContent(s, column, row, renderText.Text, textStyle)
 		}
 		row += editorRows[fileRow].renderRowOffset
 		row++
