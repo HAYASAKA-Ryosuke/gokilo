@@ -21,7 +21,7 @@ type EditorRow struct {
 }
 
 var (
-	SYNTAX_HIGHLIGHT_STYLE = "monokai"
+	SYNTAX_HIGHLIGHT_STYLE = "dracula"
 	LANGUAGE               = "go"
 	DEBUG                  = "debug"
 	currentColumn          = 0
@@ -58,6 +58,18 @@ func drawStatusBar(s tcell.Screen) {
 	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %s", currentColumn, currentRow, DEBUG), defStyle)
 }
 
+func convertAnsiColorCodeFormatToInt(ansiColorCode string) (int, error) {
+	result := strings.Replace(ansiColorCode, "\x1b[38;5;", "", -1)
+	result = strings.Replace(result, "\x1b[48;5;", "", -1)
+	result = strings.Replace(result, "m", "", -1)
+	result = strings.Trim(result, " ")
+	colorCode, err := strconv.Atoi(result)
+	if err != nil {
+		DEBUG = fmt.Sprintf("%s, %#v, %s", ansiColorCode, result, err)
+	}
+	return colorCode, err
+}
+
 func editorDrawRows(s tcell.Screen) {
 	//for y := currentRow; y < windowSizeRow; y++ {
 	//	drawContent(s, 0, y, strconv.Itoa(y+1))
@@ -70,10 +82,15 @@ func editorDrawRows(s tcell.Screen) {
 		renderTextList, _ := highlight.Highlight(editorRows[fileRow].renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
 		column := 0
 		for _, renderText := range renderTextList {
-			textColor := strings.Replace(renderText.Color, "\x1b[38;5;", "", -1)
-			textColor = strings.Replace(textColor, "m", "", -1)
-			colorCode, _ := strconv.Atoi(textColor)
-			textStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.PaletteColor(colorCode))
+			textStyle := tcell.StyleDefault.Italic(renderText.Italic).Underline(renderText.Underline).Bold(renderText.Bold)
+			if renderText.ForegroundColor != "" {
+				foregroundColorCode, _ := convertAnsiColorCodeFormatToInt(renderText.ForegroundColor)
+				textStyle = textStyle.Foreground(tcell.PaletteColor(foregroundColorCode))
+			}
+			if renderText.BackgroundColor != "" {
+				backgroundColorCode, _ := convertAnsiColorCodeFormatToInt(renderText.BackgroundColor)
+				textStyle = textStyle.Background(tcell.PaletteColor(backgroundColorCode))
+			}
 			column = drawContent(s, column, row, renderText.Text, textStyle)
 		}
 		row += editorRows[fileRow].renderRowOffset

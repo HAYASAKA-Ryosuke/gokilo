@@ -15,22 +15,27 @@ type ttyTable struct {
 
 var c = chroma.MustParseColour
 
-func entryToEscapeSequence(table *ttyTable, entry chroma.StyleEntry) string {
-	out := ""
-	if entry.Bold == chroma.Yes {
-		out += "\033[1m"
+func entryToEscapeSequence(table *ttyTable, entry chroma.StyleEntry) HighlightText {
+	out := HighlightText{
+		ForegroundColor: table.foreground[findClosest(table, entry.Colour)],
+		Bold:            entry.Bold == chroma.Yes,
+		Underline:       entry.Underline == chroma.Yes,
+		Italic:          entry.Italic == chroma.Yes,
 	}
-	if entry.Underline == chroma.Yes {
-		out += "\033[4m"
-	}
-	if entry.Italic == chroma.Yes {
-		out += "\033[3m"
-	}
+	//if entry.Bold == chroma.Yes {
+	//	out += "\033[1m"
+	//}
+	//if entry.Underline == chroma.Yes {
+	//	out += "\033[4m"
+	//}
+	//if entry.Italic == chroma.Yes {
+	//	out += "\033[3m"
+	//}
 	if entry.Colour.IsSet() {
-		out += table.foreground[findClosest(table, entry.Colour)]
+		out.ForegroundColor = table.foreground[findClosest(table, entry.Colour)]
 	}
 	if entry.Background.IsSet() {
-		out += table.background[findClosest(table, entry.Background)]
+		out.BackgroundColor = table.background[findClosest(table, entry.Background)]
 	}
 	return out
 }
@@ -48,9 +53,9 @@ func findClosest(table *ttyTable, seeking chroma.Colour) chroma.Colour {
 	return closestColour
 }
 
-func styleToEscapeSequence(table *ttyTable, style *chroma.Style) map[chroma.TokenType]string {
+func styleToEscapeSequence(table *ttyTable, style *chroma.Style) map[chroma.TokenType]HighlightText {
 	style = clearBackground(style)
-	out := map[chroma.TokenType]string{}
+	out := map[chroma.TokenType]HighlightText{}
 	for _, ttype := range style.Types() {
 		entry := style.Get(ttype)
 		out[ttype] = entryToEscapeSequence(table, entry)
@@ -239,8 +244,12 @@ type indexedTTYFormatter struct {
 }
 
 type HighlightText struct {
-	Text  string
-	Color string
+	Text            string
+	ForegroundColor string
+	BackgroundColor string
+	Italic          bool
+	Bold            bool
+	Underline       bool
 }
 
 func Format(c *indexedTTYFormatter, style *chroma.Style, it chroma.Iterator) (highlightTexts []HighlightText, err error) {
@@ -254,8 +263,9 @@ func Format(c *indexedTTYFormatter, style *chroma.Style, it chroma.Iterator) (hi
 				clr = theme[token.Type.Category()]
 			}
 		}
-		if clr != "" {
-			result = append(result, HighlightText{Text: token.Value, Color: clr})
+		if clr.ForegroundColor != "" {
+			clr.Text = token.Value
+			result = append(result, clr)
 		}
 		//fmt.Fprint(w, HighlightText{text: token.Value, color: token.Type.String()})
 		//if clr != "" {
