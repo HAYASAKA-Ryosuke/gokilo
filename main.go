@@ -21,6 +21,7 @@ type EditorRow struct {
 }
 
 var (
+	TAB_SIZE               = 8
 	SYNTAX_HIGHLIGHT_STYLE = "dracula"
 	LANGUAGE               = "go"
 	DEBUG                  = "debug"
@@ -133,7 +134,7 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 
 	// タブ1つはスペース8個分に相当するのでその分も調整してrenderColumnを決定する必要がある
 	tabLength := strings.Count(editorRows[currentRow].text[:currentColumn], "\t")
-	renderColumn = getRenderStringCount(string(rowText[:currentColumn])) + tabLength*8 - tabLength
+	renderColumn = getRenderStringCount(string(rowText[:currentColumn])) + tabLength*TAB_SIZE - tabLength
 
 	renderRow = 0
 	for row := 0; row < currentRow; row++ {
@@ -180,7 +181,7 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 }
 
 func editorUpdateRow(row int) {
-	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", "        ", -1)
+	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", strings.Repeat(" ", TAB_SIZE), -1)
 	editorRows[row].renderColumnLength = getRenderStringCount(editorRows[row].renderText)
 	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
 }
