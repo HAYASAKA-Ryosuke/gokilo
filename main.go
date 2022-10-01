@@ -118,6 +118,8 @@ func getRenderStringCount(text string) int {
 	for _, c := range []rune(text) {
 		if len(string(c)) == 1 {
 			count++
+		} else if c == 32 {
+			count += TAB_SIZE
 		} else {
 			count += 2
 		}
@@ -133,8 +135,8 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 	rowText := []rune(editorRows[currentRow].renderText)
 
 	// タブ1つはスペース8個分に相当するのでその分も調整してrenderColumnを決定する必要がある
-	tabLength := strings.Count(editorRows[currentRow].text[:currentColumn], "\t")
-	renderColumn = getRenderStringCount(string(rowText[:currentColumn])) + tabLength*TAB_SIZE - tabLength
+	tabLength := strings.Count(string([]rune(editorRows[currentRow].text)[:currentColumn]), "\t")
+	renderColumn = getRenderStringCount(string([]rune(editorRows[currentRow].text)[:currentColumn])) + tabLength*TAB_SIZE - tabLength
 
 	renderRow = 0
 	for row := 0; row < currentRow; row++ {
@@ -142,7 +144,7 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 	}
 
 	tabLength = strings.Count(editorRows[currentRow].text, "\t")
-	if getRenderStringCount(string(rowText))+tabLength*8-tabLength > windowSizeColumn {
+	if getRenderStringCount(string(rowText))+tabLength*TAB_SIZE-tabLength > windowSizeColumn {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
 	}
