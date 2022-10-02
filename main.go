@@ -21,6 +21,7 @@ type EditorRow struct {
 }
 
 var (
+	TAB_CHAR               = " "
 	TAB_SIZE               = 8
 	SYNTAX_HIGHLIGHT_STYLE = "dracula"
 	LANGUAGE               = "go"
@@ -181,7 +182,7 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 }
 
 func editorUpdateRow(row int) {
-	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", strings.Repeat(" ", TAB_SIZE), -1)
+	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", strings.Repeat(TAB_CHAR, TAB_SIZE), -1)
 	editorRows[row].renderColumnLength = getRenderStringCount(editorRows[row].renderText)
 	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
 }
