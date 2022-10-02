@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"gokilo/highlight"
 	"gokilo/lsp"
@@ -21,11 +22,13 @@ type EditorRow struct {
 }
 
 var (
+	NEWLINE_CHAR           = "\n"
 	TAB_CHAR               = " "
 	TAB_SIZE               = 8
 	SYNTAX_HIGHLIGHT_STYLE = "dracula"
 	LANGUAGE               = "go"
 	DEBUG                  = "debug"
+	filePath               = ""
 	currentColumn          = 0
 	currentRow             = 0
 	renderColumn           = 0
@@ -300,16 +303,46 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		keyDown()
 	} else if ev.Key() == tcell.KeyUp {
 		keyUp()
+	} else if ev.Key() == tcell.KeyCtrlS {
+		fileSave()
 	} else {
 		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
 	}
+}
+
+func fileSave() {
+	var f *os.File
+	f, _ = os.Create(filePath)
+
+	saveData := ""
+	for i := 0; i < len(editorRows); i++ {
+		saveData += editorRows[i].text
+		if i-1 != len(editorRows) {
+			saveData += NEWLINE_CHAR
+		}
+	}
+	n, _ := f.WriteString(saveData)
+	DEBUG = fmt.Sprintf("save: %d", n)
+	f.Close()
 }
 
 func initialize(s tcell.Screen) {
 	editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 }
 
+func getArgs() string {
+	flag.Parse()
+	args := flag.Args()
+	if len(args) == 0 {
+		return "./test.c"
+	} else {
+		return args[0]
+	}
+}
+
 func main() {
+	filePath = getArgs()
+
 	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 
 	// Initialize screen
