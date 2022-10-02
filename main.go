@@ -118,8 +118,6 @@ func getRenderStringCount(text string) int {
 	for _, c := range []rune(text) {
 		if len(string(c)) == 1 {
 			count++
-		} else if c == 32 {
-			count += TAB_SIZE
 		} else {
 			count += 2
 		}
