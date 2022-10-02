@@ -201,7 +201,7 @@ func deleteRow() {
 	currentRow--
 	for i := currentRow; i < len(editorRows)-1; i++ {
 		if currentRow == i {
-			currentColumn = getRenderStringCount(editorRows[i].text)
+			currentColumn = getStringCount(editorRows[i].text)
 			editorRows[i].text += editorRows[i+1].text
 			editorRows[i].renderText += editorRows[i+1].renderText
 		} else {
