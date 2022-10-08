@@ -22,7 +22,19 @@ type EditorRow struct {
 	renderColumnLength int
 }
 
+type CompletionInfo struct {
+	icon string
+	text string
+}
+
+type AutoCompletion struct {
+	completionList []string
+	selectedIndex  int
+}
+
 var (
+	autoCompletionEnable   = false
+	autoCompletion         = AutoCompletion{completionList: []string{"Println", "Printf", "Append", "Appendf", "foo", "hoge", "ham", "egg", "spam"}, selectedIndex: 0}
 	NEWLINE_CHAR           = "\n"
 	TAB_CHAR               = " "
 	TAB_SIZE               = 8
@@ -34,7 +46,6 @@ var (
 	currentRow             = 0
 	renderColumn           = 0
 	renderRow              = 0
-	autoCompletionEnable   = false
 	editorBuf              = ""
 	rowOffset              = 0
 	columnOffset           = 0
@@ -158,6 +169,9 @@ func editorRefreshScreen(s tcell.Screen) {
 	s.Clear()
 	updateRenderRowAndColumn(s)
 	editorDrawRows(s)
+	if autoCompletionEnable {
+		showAutoCompletion(s)
+	}
 }
 
 func editorInsertText(row, column int, text string) {
@@ -167,7 +181,7 @@ func editorInsertText(row, column int, text string) {
 	beforeText := string(runes[:column])
 	afterText := string(runes[column:])
 	editorRows[row].text = beforeText + text + afterText
-	column++
+	column += len([]rune(text))
 	currentColumn = column
 	editorUpdateRow(row)
 }
@@ -243,6 +257,14 @@ func keyUp() {
 			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
 	}
+
+	if autoCompletionEnable {
+		if autoCompletion.selectedIndex == 0 {
+			autoCompletion.selectedIndex = len(autoCompletion.completionList) - 1
+		} else {
+			autoCompletion.selectedIndex = (autoCompletion.selectedIndex - 1) % len(autoCompletion.completionList)
+		}
+	}
 }
 
 func keyDown() {
@@ -257,6 +279,12 @@ func keyDown() {
 	if len(editorRows) < currentRow+1 {
 		editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 	}
+
+	if autoCompletionEnable {
+		if len(autoCompletion.completionList) != 0 {
+			autoCompletion.selectedIndex = (autoCompletion.selectedIndex + 1) % len(autoCompletion.completionList)
+		}
+	}
 }
 
 func keyLeft() {
@@ -267,6 +295,7 @@ func keyLeft() {
 		currentColumn = getStringCount(editorRows[currentRow].text)
 		editorUpdateRow(currentRow)
 	}
+	autoCompletionEnable = false
 }
 
 func keyRight() {
@@ -278,6 +307,11 @@ func keyRight() {
 		currentRow++
 		editorUpdateRow(currentRow)
 	}
+	autoCompletionEnable = false
+}
+
+func showAutoCompletion(s tcell.Screen) {
+	snippet.DrawSnippet(s, renderColumn, renderRow, autoCompletion.completionList, autoCompletion.selectedIndex)
 }
 
 func quit(s tcell.Screen) {
@@ -292,12 +326,16 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyCtrlQ {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
-		completionList := []string{"Println", "Printf", "Append", "Appendf"}
-		snippet.DrawSnippet(s, currentColumn, currentRow, completionList, 1)
+		autoCompletionEnable = !autoCompletionEnable
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
-		editorInsertNewline(s)
+		if autoCompletionEnable {
+			autoCompletionEnable = false
+			editorInsertText(currentRow, currentColumn, autoCompletion.completionList[autoCompletion.selectedIndex])
+		} else {
+			editorInsertNewline(s)
+		}
 	} else if ev.Key() == tcell.KeyLeft {
 		keyLeft()
 	} else if ev.Key() == tcell.KeyRight {
@@ -373,7 +411,6 @@ func main() {
 	initialize(s)
 
 	for {
-
 		editorRefreshScreen(s)
 		s.ShowCursor(renderColumn, renderRow)
 		// Update screen
