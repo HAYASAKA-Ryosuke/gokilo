@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gokilo/highlight"
 	"gokilo/lsp"
+	"gokilo/snippet"
 	"log"
 	"os"
 	"strconv"
@@ -291,6 +292,8 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyCtrlQ {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
+		completionList := []string{"Println", "Printf", "Append", "Appendf"}
+		snippet.DrawSnippet(s, currentColumn, currentRow, completionList, 1)
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
