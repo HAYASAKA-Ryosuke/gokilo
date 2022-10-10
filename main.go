@@ -153,7 +153,7 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 	renderColumn = getRenderStringCount(string([]rune(editorRows[currentRow].text)[:currentColumn])) + tabLength*TAB_SIZE - tabLength
 
 	renderRow = 0
-	for row := 0; row < currentRow; row++ {
+	for row := rowOffset; row < currentRow; row++ {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
@@ -161,6 +161,9 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 	if getRenderStringCount(string(rowText))+tabLength*TAB_SIZE-tabLength > windowSizeColumn {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
+	}
+	if renderRow > windowSizeRow {
+		renderRow = windowSizeRow
 	}
 }
 
@@ -253,6 +256,7 @@ func editorDeleteChar(s tcell.Screen) {
 func keyUp() {
 	if currentRow != 0 {
 		currentRow--
+		renderRow--
 		if getStringCount(editorRows[currentRow].text) < currentColumn {
 			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
@@ -271,6 +275,9 @@ func keyDown() {
 	if len(editorRows) > currentRow+1 {
 		currentRow++
 		renderRow++
+		if renderRow > windowSizeRow-1 {
+			renderRow = windowSizeRow - 1
+		}
 		if getStringCount(editorRows[currentRow].text) < currentColumn {
 			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
