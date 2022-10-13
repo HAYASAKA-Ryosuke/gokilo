@@ -72,7 +72,9 @@ func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tc
 
 func drawStatusBar(s tcell.Screen) {
 	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
-	drawContent(s, 0, windowSizeRow, fmt.Sprintf("status %d, %d, %d, %s", currentColumn, currentRow, renderColumn, DEBUG), defStyle)
+	style := tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorReset)
+	text := fmt.Sprintf("status %d, %d, %d, %d, %s", currentColumn, currentRow, renderColumn, renderRow, DEBUG)
+	drawContent(s, 0, windowSizeRow, text+strings.Repeat(" ", windowSizeColumn-len(text)), style)
 }
 
 func convertAnsiColorCodeFormatToInt(ansiColorCode string) (int, error) {
