@@ -113,7 +113,6 @@ func editorDrawRows(s tcell.Screen) {
 			}
 			column, row = drawContent(s, column, row, renderText.Text, textStyle)
 		}
-		row += editorRows[i+rowOffset].renderRowOffset
 		row++
 	}
 	//if len(editorRows) < windowSizeRow {
