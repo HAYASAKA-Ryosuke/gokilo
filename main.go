@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"gokilo/highlight"
-	"gokilo/lsp"
 	"gokilo/snippet"
 	"log"
 	"os"
