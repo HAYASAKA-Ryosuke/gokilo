@@ -48,11 +48,13 @@ var (
 	renderRow              = 0
 	editorBuf              = ""
 	rowOffset              = 0
+	rowNumberColumnOffset  = 7
 	columnOffset           = 0
 	editorRows             = []EditorRow{}
 	defStyle               = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 	windowSizeColumn       = 0
 	windowSizeRow          = 0
+	STATUS_BAR_OFFSET      = 1
 )
 
 func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) (int, int) {
@@ -94,11 +96,11 @@ func editorDrawRows(s tcell.Screen) {
 	//	drawContent(s, 0, y, strconv.Itoa(y+1))
 	//}
 	row := 0
-	for fileRow := rowOffset; fileRow < windowSizeRow-1; fileRow++ {
-		if len(editorRows) <= fileRow {
+	for i := 0; i < windowSizeRow; i++ {
+		if len(editorRows) <= i+rowOffset {
 			break
 		}
-		renderTextList, _ := highlight.Highlight(editorRows[fileRow].renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
+		renderTextList, _ := highlight.Highlight(editorRows[i+rowOffset].renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
 		column := 0
 		for _, renderText := range renderTextList {
 			textStyle := tcell.StyleDefault.Italic(renderText.Italic).Underline(renderText.Underline).Bold(renderText.Bold)
@@ -112,9 +114,18 @@ func editorDrawRows(s tcell.Screen) {
 			}
 			column, row = drawContent(s, column, row, renderText.Text, textStyle)
 		}
-		row += editorRows[fileRow].renderRowOffset
+		row += editorRows[i+rowOffset].renderRowOffset
 		row++
 	}
+	//if len(editorRows) < windowSizeRow {
+	//	for row := 0; row < len(editorRows); row++ {
+	//		drawContent(s, 0, row, fmt.Sprintf("%d", row+rowOffset+1), defStyle)
+	//	}
+	//} else if rowOffset == windowSizeRow-1 || rowOffset == 0 {
+	//	for row := 0; row < windowSizeRow; row++ {
+	//		drawContent(s, 0, row, fmt.Sprintf("%d", row+rowOffset+1), defStyle)
+	//	}
+	//}
 	drawStatusBar(s)
 }
 
@@ -124,6 +135,9 @@ func editorScroll(c tcell.Screen) {
 	}
 	if currentRow >= rowOffset+windowSizeRow {
 		rowOffset = currentRow - windowSizeRow + 1
+	}
+	if renderRow == windowSizeRow-1 && ((editorRows[currentRow].renderRowOffset+1)*windowSizeColumn >= editorRows[currentRow].renderColumnLength && (editorRows[currentRow].renderRowOffset)*windowSizeColumn < editorRows[currentRow].renderColumnLength) {
+		rowOffset = currentRow - windowSizeRow + 1 + editorRows[currentRow].renderRowOffset
 	}
 }
 
@@ -164,8 +178,8 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 		renderRow += int(renderColumn / windowSizeColumn)
 		renderColumn = renderColumn % windowSizeColumn
 	}
-	if renderRow > windowSizeRow {
-		renderRow = windowSizeRow
+	if renderRow > windowSizeRow-STATUS_BAR_OFFSET {
+		renderRow = windowSizeRow - STATUS_BAR_OFFSET
 	}
 }
 
