@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gokilo/debug"
 	"gokilo/highlight"
 	"gokilo/snippet"
 	"log"
@@ -104,10 +105,6 @@ func editorDrawRows(s tcell.Screen) {
 		}
 		renderText := editorRows[i+rowOffset].renderText
 		if !WORD_WRAP {
-			//offsetColumn := renderColumn - windowSizeColumn
-			//if offsetColumn < 0 {
-			//	offsetColumn = 0
-			//}
 			renderText = renderText[columnOffset:]
 		}
 		renderTextList, _ := highlight.Highlight(renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
@@ -122,7 +119,11 @@ func editorDrawRows(s tcell.Screen) {
 				backgroundColorCode, _ := convertAnsiColorCodeFormatToInt(renderText.BackgroundColor)
 				textStyle = textStyle.Background(tcell.PaletteColor(backgroundColorCode))
 			}
-			column, row = drawContent(s, column%windowSizeColumn, row, renderText.Text, textStyle)
+			if WORD_WRAP {
+				column, row = drawContent(s, column%windowSizeColumn, row, renderText.Text, textStyle)
+			} else {
+				column, row = drawContent(s, column, row, renderText.Text, textStyle)
+			}
 		}
 		row++
 	}
@@ -446,6 +447,10 @@ func getArgs() string {
 }
 
 func main() {
+
+	debug.LogConfig("./app.log")
+	log.Println("hello")
+
 	filePath = getArgs()
 
 	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
