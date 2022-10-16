@@ -105,7 +105,9 @@ func editorDrawRows(s tcell.Screen) {
 		}
 		renderText := editorRows[i+rowOffset].renderText
 		if !WORD_WRAP {
-			renderText = renderText[columnOffset:]
+			if len(renderText) >= columnOffset {
+				renderText = renderText[columnOffset:]
+			}
 		}
 		renderTextList, _ := highlight.Highlight(renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
 		column := 0
