@@ -54,15 +54,18 @@ var (
 	windowSizeColumn       = 0
 	windowSizeRow          = 0
 	STATUS_BAR_OFFSET      = 1
+	WORD_WRAP              = false // 折り返すか
 )
 
 func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) (int, int) {
 
 	//textColorStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.PaletteColor(1))
 	for _, r := range []rune(text) {
-		if windowSizeColumn <= column {
-			row++
-			column = 0
+		if WORD_WRAP {
+			if windowSizeColumn <= column {
+				row++
+				column = 0
+			}
 		}
 		s.SetContent(column, row, r, nil, textColorStyle)
 		column += runewidth.RuneWidth(r)
@@ -72,7 +75,7 @@ func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tc
 }
 
 func drawStatusBar(s tcell.Screen) {
-	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset)
+	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d, rowOffset %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset, rowOffset)
 	style := tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorReset)
 	text := fmt.Sprintf("status %d, %d, %d, %d, %s", currentColumn, currentRow, renderColumn, renderRow, DEBUG)
 	drawContent(s, 0, windowSizeRow, text+strings.Repeat(" ", windowSizeColumn-len(text)), style)
@@ -99,7 +102,15 @@ func editorDrawRows(s tcell.Screen) {
 		if len(editorRows) <= i+rowOffset {
 			break
 		}
-		renderTextList, _ := highlight.Highlight(editorRows[i+rowOffset].renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
+		renderText := editorRows[i+rowOffset].renderText
+		if !WORD_WRAP {
+			//offsetColumn := renderColumn - windowSizeColumn
+			//if offsetColumn < 0 {
+			//	offsetColumn = 0
+			//}
+			renderText = renderText[columnOffset:]
+		}
+		renderTextList, _ := highlight.Highlight(renderText, LANGUAGE, SYNTAX_HIGHLIGHT_STYLE)
 		column := 0
 		for _, renderText := range renderTextList {
 			textStyle := tcell.StyleDefault.Italic(renderText.Italic).Underline(renderText.Underline).Bold(renderText.Bold)
@@ -111,7 +122,7 @@ func editorDrawRows(s tcell.Screen) {
 				backgroundColorCode, _ := convertAnsiColorCodeFormatToInt(renderText.BackgroundColor)
 				textStyle = textStyle.Background(tcell.PaletteColor(backgroundColorCode))
 			}
-			column, row = drawContent(s, column, row, renderText.Text, textStyle)
+			column, row = drawContent(s, column%windowSizeColumn, row, renderText.Text, textStyle)
 		}
 		row++
 	}
@@ -128,14 +139,41 @@ func editorDrawRows(s tcell.Screen) {
 }
 
 func editorScroll(c tcell.Screen) {
+
+	tabLength := strings.Count(string([]rune(editorRows[currentRow].text)[:currentColumn]), "\t")
+	renderColumn = getRenderStringCount(string([]rune(editorRows[currentRow].text)[:currentColumn])) + tabLength*TAB_SIZE - tabLength
+
 	if currentRow < rowOffset {
 		rowOffset = currentRow
 	}
 	if currentRow >= rowOffset+windowSizeRow {
-		rowOffset = currentRow - windowSizeRow + 1
-	}
-	if renderRow == windowSizeRow-1 && ((editorRows[currentRow].renderRowOffset+1)*windowSizeColumn >= editorRows[currentRow].renderColumnLength && (editorRows[currentRow].renderRowOffset)*windowSizeColumn < editorRows[currentRow].renderColumnLength) {
 		rowOffset = currentRow - windowSizeRow + 1 + editorRows[currentRow].renderRowOffset
+	}
+	if renderColumn < columnOffset {
+		columnOffset = renderColumn
+	}
+	if renderColumn >= columnOffset+windowSizeColumn {
+		columnOffset = renderColumn - windowSizeColumn + 1
+	}
+	////if renderRow == windowSizeRow-1 && ((editorRows[currentRow].renderRowOffset+1)*windowSizeColumn >= editorRows[currentRow].renderColumnLength && (editorRows[currentRow].renderRowOffset)*windowSizeColumn < editorRows[currentRow].renderColumnLength) {
+	//if renderRow == windowSizeRow-1 {
+	//	rowOffset = 0
+	//	for i := currentRow; i >= 0; i-- {
+	//		rowOffset += editorRows[i].renderRowOffset + 1
+	//	}
+	//	rowOffset -= windowSizeRow
+	//	//rowOffset = currentRow - windowSizeRow + 1 + editorRows[currentRow].renderRowOffset
+	//}
+
+	if renderRow == windowSizeRow-1 {
+		rowOffset = 0
+		for row := currentRow; row >= 0; row-- {
+			rowOffset += editorRows[row].renderRowOffset + 1
+		}
+		rowOffset -= windowSizeRow
+		if rowOffset < 0 {
+			rowOffset = 0
+		}
 	}
 }
 
@@ -167,15 +205,18 @@ func updateRenderRowAndColumn(s tcell.Screen) {
 	renderColumn = getRenderStringCount(string([]rune(editorRows[currentRow].text)[:currentColumn])) + tabLength*TAB_SIZE - tabLength
 
 	renderRow = 0
-	for row := rowOffset; row < currentRow; row++ {
+	for row := currentRow - 1; row >= rowOffset; row-- {
 		renderRow += editorRows[row].renderRowOffset + 1
 	}
 
 	tabLength = strings.Count(editorRows[currentRow].text, "\t")
 	if getRenderStringCount(string(rowText))+tabLength*TAB_SIZE-tabLength > windowSizeColumn {
-		renderRow += int(renderColumn / windowSizeColumn)
-		renderColumn = renderColumn % windowSizeColumn
+		if WORD_WRAP {
+			renderRow += int(renderColumn / windowSizeColumn)
+			renderColumn = renderColumn % windowSizeColumn
+		}
 	}
+
 	if renderRow > windowSizeRow-STATUS_BAR_OFFSET {
 		renderRow = windowSizeRow - STATUS_BAR_OFFSET
 	}
@@ -219,7 +260,9 @@ func editorInsertRow(s tcell.Screen, row int, text string) {
 func editorUpdateRow(row int) {
 	editorRows[row].renderText = strings.Replace(editorRows[row].text, "\t", strings.Repeat(TAB_CHAR, TAB_SIZE), -1)
 	editorRows[row].renderColumnLength = getRenderStringCount(editorRows[row].renderText)
-	editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
+	if WORD_WRAP {
+		editorRows[row].renderRowOffset = int(editorRows[row].renderColumnLength / windowSizeColumn)
+	}
 }
 
 func editorInsertNewline(s tcell.Screen) {
@@ -433,7 +476,7 @@ func main() {
 
 	for {
 		editorRefreshScreen(s)
-		s.ShowCursor(renderColumn, renderRow)
+		s.ShowCursor(renderColumn-columnOffset, renderRow)
 		// Update screen
 		s.Show()
 
