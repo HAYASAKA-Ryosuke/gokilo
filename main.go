@@ -341,6 +341,8 @@ func keyDown() {
 		if getStringCount(editorRows[currentRow].text) < currentColumn {
 			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
+	} else if len(editorRows) == currentRow+1 {
+		currentColumn = getStringCount(editorRows[currentRow].text)
 	}
 
 	if len(editorRows) < currentRow+1 {
