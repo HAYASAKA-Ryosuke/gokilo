@@ -453,7 +453,6 @@ func getArgs() string {
 func main() {
 
 	debug.LogConfig("./app.log")
-	log.Println("hello")
 
 	filePath = getArgs()
 
@@ -476,7 +475,6 @@ func main() {
 
 	// Event loop
 	ox, oy := -1, -1
-	fmt.Println(oy)
 
 	windowSizeColumn, windowSizeRow = getWindowSize(s)
 	windowSizeRow--
