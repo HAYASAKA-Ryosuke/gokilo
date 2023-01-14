@@ -398,6 +398,14 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
 		autoCompletionEnable = !autoCompletionEnable
+		completionList := LSP.Completion("/home/hayasaka/go/src/gokilo/main.go", uint32(currentRow), uint32(currentColumn))
+		if len(completionList.Items) > 0 {
+			completionItems := []string{}
+			for _, item := range completionList.Items {
+				completionItems = append(completionItems, item.Label)
+			}
+			autoCompletion = AutoCompletion{completionList: completionItems, selectedIndex: 0}
+		}
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
