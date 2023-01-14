@@ -35,7 +35,7 @@ type AutoCompletion struct {
 
 var (
 	autoCompletionEnable   = false
-	autoCompletion         = AutoCompletion{completionList: []string{"Println", "Printf", "Append", "Appendf", "foo", "hoge", "ham", "egg", "spam"}, selectedIndex: 0}
+	autoCompletion         = AutoCompletion{completionList: []string{}, selectedIndex: 0}
 	NEWLINE_CHAR           = "\n"
 	TAB_CHAR               = " "
 	TAB_SIZE               = 8
@@ -385,6 +385,17 @@ func showAutoCompletion(s tcell.Screen) {
 	snippet.DrawSnippet(s, renderColumn, renderRow, autoCompletion.completionList, autoCompletion.selectedIndex)
 }
 
+func updateAutoCompletion() {
+	completionList := LSP.Completion("/home/hayasaka/go/src/gokilo/main.go", uint32(currentRow), uint32(currentColumn))
+	if len(completionList.Items) > 0 {
+		completionItems := []string{}
+		for _, item := range completionList.Items {
+			completionItems = append(completionItems, item.Label)
+		}
+		autoCompletion = AutoCompletion{completionList: completionItems, selectedIndex: 0}
+	}
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -398,14 +409,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
 		autoCompletionEnable = !autoCompletionEnable
-		completionList := LSP.Completion("/home/hayasaka/go/src/gokilo/main.go", uint32(currentRow), uint32(currentColumn))
-		if len(completionList.Items) > 0 {
-			completionItems := []string{}
-			for _, item := range completionList.Items {
-				completionItems = append(completionItems, item.Label)
-			}
-			autoCompletion = AutoCompletion{completionList: completionItems, selectedIndex: 0}
-		}
+		updateAutoCompletion()
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
