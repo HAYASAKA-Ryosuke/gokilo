@@ -42,7 +42,7 @@ var (
 	SYNTAX_HIGHLIGHT_STYLE = "dracula"
 	LANGUAGE               = "go"
 	DEBUG                  = "debug"
-	filePath               = ""
+	currentFilePath        = ""
 	currentColumn          = 0
 	currentRow             = 0
 	renderColumn           = 0
@@ -382,11 +382,14 @@ func keyRight() {
 }
 
 func showAutoCompletion(s tcell.Screen) {
-	snippet.DrawSnippet(s, renderColumn, renderRow, autoCompletion.completionList, autoCompletion.selectedIndex)
+	if len(autoCompletion.completionList) > 0 {
+		snippet.DrawSnippet(s, renderColumn, renderRow, autoCompletion.completionList, autoCompletion.selectedIndex)
+	}
 }
 
-func updateAutoCompletion() {
-	completionList := LSP.Completion("/home/hayasaka/go/src/gokilo/main.go", uint32(currentRow), uint32(currentColumn))
+func updateAutoCompletion(path string) {
+	completionList := LSP.Completion(path, uint32(currentRow), uint32(currentColumn))
+	DEBUG = string(len(completionList.Items))
 	if len(completionList.Items) > 0 {
 		completionItems := []string{}
 		for _, item := range completionList.Items {
@@ -409,13 +412,15 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
 		autoCompletionEnable = !autoCompletionEnable
-		updateAutoCompletion()
+		updateAutoCompletion(currentFilePath)
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
 		if autoCompletionEnable {
 			autoCompletionEnable = false
-			editorInsertText(currentRow, currentColumn, autoCompletion.completionList[autoCompletion.selectedIndex])
+			if len(autoCompletion.completionList) > 0 {
+				editorInsertText(currentRow, currentColumn, autoCompletion.completionList[autoCompletion.selectedIndex])
+			}
 		} else {
 			editorInsertNewline(s)
 		}
@@ -436,7 +441,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 
 func fileSave() {
 	var f *os.File
-	f, _ = os.Create(filePath)
+	f, _ = os.Create(currentFilePath)
 
 	saveData := ""
 	for i := 0; i < len(editorRows); i++ {
@@ -458,7 +463,8 @@ func getArgs() string {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) == 0 {
-		return "./test.c"
+		path, _ := os.Getwd()
+		return path + "/test.go"
 	} else {
 		return args[0]
 	}
@@ -470,7 +476,7 @@ func main() {
 	path, _ := os.Getwd()
 	LSP.Init(path)
 
-	filePath = getArgs()
+	currentFilePath = getArgs()
 
 	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 
