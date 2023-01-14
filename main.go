@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gokilo/debug"
 	"gokilo/highlight"
+	"gokilo/lsp"
 	"gokilo/snippet"
 	"log"
 	"os"
@@ -56,6 +57,7 @@ var (
 	windowSizeRow          = 0
 	STATUS_BAR_OFFSET      = 1
 	WORD_WRAP              = false // 折り返すか
+	LSP                    = &lsp.Lsp{}
 )
 
 func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) (int, int) {
@@ -451,8 +453,10 @@ func getArgs() string {
 }
 
 func main() {
-
 	debug.LogConfig("./app.log")
+	LSP = lsp.NewLsp("/home/hayasaka/go/bin/gopls")
+	path, _ := os.Getwd()
+	LSP.Init(path)
 
 	filePath = getArgs()
 
