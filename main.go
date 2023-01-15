@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	ac "gokilo/autoCompletion"
 	"gokilo/debug"
 	"gokilo/highlight"
 	"gokilo/lsp"
@@ -23,19 +24,7 @@ type EditorRow struct {
 	renderColumnLength int
 }
 
-type CompletionInfo struct {
-	icon string
-	text string
-}
-
-type AutoCompletion struct {
-	completionList []string
-	selectedIndex  int
-}
-
 var (
-	autoCompletionEnable   = false
-	autoCompletion         = AutoCompletion{completionList: []string{}, selectedIndex: 0}
 	NEWLINE_CHAR           = "\n"
 	TAB_CHAR               = " "
 	TAB_SIZE               = 8
@@ -58,6 +47,7 @@ var (
 	STATUS_BAR_OFFSET      = 1
 	WORD_WRAP              = false // 折り返すか
 	LSP                    = &lsp.Lsp{}
+	autoCompletion         = &ac.AutoCompletion{}
 )
 
 func drawContent(s tcell.Screen, column, row int, text string, textColorStyle tcell.Style) (int, int) {
@@ -232,8 +222,10 @@ func editorRefreshScreen(s tcell.Screen) {
 	s.Clear()
 	updateRenderRowAndColumn(s)
 	editorDrawRows(s)
-	if autoCompletionEnable {
-		showAutoCompletion(s)
+	completions, index, selectedIndex, completionTotalCount := autoCompletion.GetCompletions(5)
+	if completionTotalCount > 0 {
+		DEBUG = fmt.Sprintf("%d,%d,%d,%d", len(completions), index, completionTotalCount, len(completions)*(selectedIndex)/completionTotalCount)
+		snippet.DrawSnippet(s, renderColumn, renderRow+1, completions, index, len(completions)*(selectedIndex)/completionTotalCount)
 	}
 }
 
@@ -315,45 +307,59 @@ func editorDeleteChar(s tcell.Screen) {
 	}
 }
 
-func keyUp() {
-	if currentRow != 0 {
-		currentRow--
-		renderRow--
-		if getStringCount(editorRows[currentRow].text) < currentColumn {
-			currentColumn = getStringCount(editorRows[currentRow].text)
+func keyEnter(s tcell.Screen) {
+	if autoCompletion.IsEnabled() {
+		completions, index, _, _ := autoCompletion.GetCompletions(3)
+		if len(completions) > 0 {
+			editorInsertText(currentRow, currentColumn, completions[index])
 		}
-	}
-
-	if autoCompletionEnable {
-		if autoCompletion.selectedIndex == 0 {
-			autoCompletion.selectedIndex = len(autoCompletion.completionList) - 1
-		} else {
-			autoCompletion.selectedIndex = (autoCompletion.selectedIndex - 1) % len(autoCompletion.completionList)
-		}
+		autoCompletion.SetEnabled(false)
+	} else {
+		editorInsertNewline(s)
 	}
 }
 
-func keyDown() {
-	if len(editorRows) > currentRow+1 {
-		currentRow++
-		renderRow++
-		if renderRow > windowSizeRow-1 {
-			renderRow = windowSizeRow - 1
+func keyUp() {
+	if autoCompletion.IsEnabled() {
+		autoCompletion.UpdateIndex(-1)
+	} else {
+		if currentRow != 0 {
+			currentRow--
+			renderRow--
+			if getStringCount(editorRows[currentRow].text) < currentColumn {
+				currentColumn = getStringCount(editorRows[currentRow].text)
+			}
 		}
-		if getStringCount(editorRows[currentRow].text) < currentColumn {
+
+	}
+	//if autoCompletion.autoCompletionEnable {
+	//	if autoCompletion.selectedIndex == 0 {
+	//		autoCompletion.selectedIndex = len(autoCompletion.completionList) - 1
+	//	} else {
+	//		autoCompletion.selectedIndex = (autoCompletion.selectedIndex - 1) % len(autoCompletion.completionList)
+	//	}
+	//}
+}
+
+func keyDown() {
+	if autoCompletion.IsEnabled() {
+		autoCompletion.UpdateIndex(1)
+	} else {
+		if len(editorRows) > currentRow+1 {
+			currentRow++
+			renderRow++
+			if renderRow > windowSizeRow-1 {
+				renderRow = windowSizeRow - 1
+			}
+			if getStringCount(editorRows[currentRow].text) < currentColumn {
+				currentColumn = getStringCount(editorRows[currentRow].text)
+			}
+		} else if len(editorRows) == currentRow+1 {
 			currentColumn = getStringCount(editorRows[currentRow].text)
 		}
-	} else if len(editorRows) == currentRow+1 {
-		currentColumn = getStringCount(editorRows[currentRow].text)
-	}
 
-	if len(editorRows) < currentRow+1 {
-		editorRows = append(editorRows, EditorRow{"", "", 0, 0})
-	}
-
-	if autoCompletionEnable {
-		if len(autoCompletion.completionList) != 0 {
-			autoCompletion.selectedIndex = (autoCompletion.selectedIndex + 1) % len(autoCompletion.completionList)
+		if len(editorRows) < currentRow+1 {
+			editorRows = append(editorRows, EditorRow{"", "", 0, 0})
 		}
 	}
 }
@@ -366,7 +372,7 @@ func keyLeft() {
 		currentColumn = getStringCount(editorRows[currentRow].text)
 		editorUpdateRow(currentRow)
 	}
-	autoCompletionEnable = false
+	autoCompletion.SetEnabled(false)
 }
 
 func keyRight() {
@@ -378,25 +384,7 @@ func keyRight() {
 		currentRow++
 		editorUpdateRow(currentRow)
 	}
-	autoCompletionEnable = false
-}
-
-func showAutoCompletion(s tcell.Screen) {
-	if len(autoCompletion.completionList) > 0 {
-		snippet.DrawSnippet(s, renderColumn, renderRow, autoCompletion.completionList, autoCompletion.selectedIndex)
-	}
-}
-
-func updateAutoCompletion(path string) {
-	completionList := LSP.Completion(path, uint32(currentRow), uint32(currentColumn))
-	DEBUG = string(len(completionList.Items))
-	if len(completionList.Items) > 0 {
-		completionItems := []string{}
-		for _, item := range completionList.Items {
-			completionItems = append(completionItems, item.Label)
-		}
-		autoCompletion = AutoCompletion{completionList: completionItems, selectedIndex: 0}
-	}
+	autoCompletion.SetEnabled(false)
 }
 
 func quit(s tcell.Screen) {
@@ -411,19 +399,12 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyCtrlQ {
 		quit(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
-		autoCompletionEnable = !autoCompletionEnable
-		updateAutoCompletion(currentFilePath)
+		autoCompletion.SetEnabled(!autoCompletion.IsEnabled())
+		autoCompletion.UpdateAutoCompletion(currentFilePath, LSP, currentRow, currentColumn)
 	} else if ev.Key() == tcell.KeyBackspace2 {
 		editorDeleteChar(s)
 	} else if ev.Key() == tcell.KeyEnter {
-		if autoCompletionEnable {
-			autoCompletionEnable = false
-			if len(autoCompletion.completionList) > 0 {
-				editorInsertText(currentRow, currentColumn, autoCompletion.completionList[autoCompletion.selectedIndex])
-			}
-		} else {
-			editorInsertNewline(s)
-		}
+		keyEnter(s)
 	} else if ev.Key() == tcell.KeyLeft {
 		keyLeft()
 	} else if ev.Key() == tcell.KeyRight {
@@ -496,7 +477,7 @@ func main() {
 	//drawBox(s, 5, 9, 32, 14, completionColorStyle, "Press C to reset")
 
 	// Event loop
-	ox, oy := -1, -1
+	ox, _ := -1, -1
 
 	windowSizeColumn, windowSizeRow = getWindowSize(s)
 	windowSizeRow--
@@ -527,12 +508,12 @@ func main() {
 			button &= tcell.ButtonMask(0xff)
 
 			if button != tcell.ButtonNone && ox < 0 {
-				ox, oy = x, y
+				ox, _ = x, y
 			}
 			switch ev.Buttons() {
 			case tcell.ButtonNone:
 				if ox >= 0 {
-					ox, oy = -1, -1
+					ox, _ = -1, -1
 				}
 			}
 		}
