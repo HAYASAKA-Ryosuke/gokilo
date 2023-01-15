@@ -387,6 +387,27 @@ func keyRight() {
 	autoCompletion.SetEnabled(false)
 }
 
+func keyCtrlP() {
+	autoCompletion.SetEnabled(!autoCompletion.IsEnabled())
+	autoCompletion.UpdateAutoCompletion(currentFilePath, LSP, currentRow, currentColumn)
+}
+
+func keyCtrlS() {
+	fileSave()
+}
+
+func keyBackspace2(s tcell.Screen) {
+	editorDeleteChar(s)
+}
+
+func keyCtrlL(s tcell.Screen) {
+	s.Sync()
+}
+
+func keyCtrlQ(s tcell.Screen) {
+	quit(s)
+}
+
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
@@ -395,14 +416,13 @@ func quit(s tcell.Screen) {
 func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
 	} else if ev.Key() == tcell.KeyCtrlL {
-		s.Sync()
+		keyCtrlL(s)
 	} else if ev.Key() == tcell.KeyCtrlQ {
-		quit(s)
+		keyCtrlQ(s)
 	} else if ev.Key() == tcell.KeyCtrlP {
-		autoCompletion.SetEnabled(!autoCompletion.IsEnabled())
-		autoCompletion.UpdateAutoCompletion(currentFilePath, LSP, currentRow, currentColumn)
+		keyCtrlP()
 	} else if ev.Key() == tcell.KeyBackspace2 {
-		editorDeleteChar(s)
+		keyBackspace2(s)
 	} else if ev.Key() == tcell.KeyEnter {
 		keyEnter(s)
 	} else if ev.Key() == tcell.KeyLeft {
@@ -414,7 +434,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	} else if ev.Key() == tcell.KeyUp {
 		keyUp()
 	} else if ev.Key() == tcell.KeyCtrlS {
-		fileSave()
+		keyCtrlS()
 	} else {
 		editorInsertText(currentRow, currentColumn, string(ev.Rune()))
 	}
