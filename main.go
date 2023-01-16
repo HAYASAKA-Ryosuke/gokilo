@@ -23,7 +23,7 @@ type EditorRow struct {
 
 var (
 	LSP            = &lsp.Lsp{}
-	render         = []rend.Render{}
+	renders        = []rend.Render{}
 	autoCompletion = &ac.AutoCompletion{}
 	page           = 0
 )
@@ -32,11 +32,11 @@ func keyEnter(s tcell.Screen) {
 	if autoCompletion.IsEnabled() {
 		completions, index, _, _ := autoCompletion.GetCompletions(3)
 		if len(completions) > 0 {
-			render[page].EditorInsertText(completions[index])
+			renders[page].EditorInsertText(completions[index])
 		}
 		autoCompletion.SetEnabled(false)
 	} else {
-		render[page].EditorInsertNewline(s)
+		renders[page].EditorInsertNewline(s)
 	}
 }
 
@@ -44,7 +44,7 @@ func keyUp() {
 	if autoCompletion.IsEnabled() {
 		autoCompletion.UpdateIndex(-1)
 	} else {
-		render[page].CursorMove("up")
+		renders[page].CursorMove("up")
 	}
 }
 
@@ -52,24 +52,24 @@ func keyDown() {
 	if autoCompletion.IsEnabled() {
 		autoCompletion.UpdateIndex(1)
 	} else {
-		render[page].CursorMove("down")
+		renders[page].CursorMove("down")
 	}
 }
 
 func keyLeft() {
-	render[page].CursorMove("left")
+	renders[page].CursorMove("left")
 	autoCompletion.SetEnabled(false)
 }
 
 func keyRight() {
-	render[page].CursorMove("right")
+	renders[page].CursorMove("right")
 	autoCompletion.SetEnabled(false)
 }
 
 func keyCtrlP() {
 	autoCompletion.SetEnabled(!autoCompletion.IsEnabled())
-	currentRow, currentColumn := render[page].GetCurrentPosition()
-	autoCompletion.UpdateAutoCompletion(render[page].GetCurrentFilePath(), LSP, currentRow, currentColumn)
+	currentRow, currentColumn := renders[page].GetCurrentPosition()
+	autoCompletion.UpdateAutoCompletion(renders[page].GetCurrentFilePath(), LSP, currentRow, currentColumn)
 }
 
 func keyCtrlS() {
@@ -77,7 +77,7 @@ func keyCtrlS() {
 }
 
 func keyBackspace2(s tcell.Screen) {
-	render[page].EditorDeleteChar(s)
+	renders[page].EditorDeleteChar(s)
 }
 
 func keyCtrlL(s tcell.Screen) {
@@ -97,7 +97,7 @@ func keyEscape() {
 }
 
 func otherKey(ev *tcell.EventKey) {
-	render[page].EditorInsertText(string(ev.Rune()))
+	renders[page].EditorInsertText(string(ev.Rune()))
 }
 
 func quit(s tcell.Screen) {
@@ -138,11 +138,11 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 
 func fileSave() {
 	var f *os.File
-	f, _ = os.Create(render[page].GetCurrentFilePath())
+	f, _ = os.Create(renders[page].GetCurrentFilePath())
 
-	saveData := render[page].GetAllText()
+	saveData := renders[page].GetAllText()
 	n, _ := f.WriteString(saveData)
-	render[page].SetDebug(fmt.Sprintf("save: %d", n))
+	renders[page].SetDebug(fmt.Sprintf("save: %d", n))
 	f.Close()
 }
 
@@ -158,17 +158,17 @@ func getArgs() string {
 }
 
 func refresh(s tcell.Screen) {
-	render[page].EditorScroll(s)
+	renders[page].EditorScroll(s)
 	s.Clear()
-	render[page].UpdateRenderRowAndColumn(s)
-	render[page].EditorDrawRows(s)
+	renders[page].UpdateRenderRowAndColumn(s)
+	renders[page].EditorDrawRows(s)
 	completions, index, selectedIndex, completionTotalCount := autoCompletion.GetCompletions(5)
 	if completionTotalCount > 0 {
-		render[page].SetDebug(fmt.Sprintf("%d,%d,%d,%d", len(completions), index, completionTotalCount, len(completions)*(selectedIndex)/completionTotalCount))
-		renderRow, renderColumn := render[page].GetRenderPosition()
+		renders[page].SetDebug(fmt.Sprintf("%d,%d,%d,%d", len(completions), index, completionTotalCount, len(completions)*(selectedIndex)/completionTotalCount))
+		renderRow, renderColumn := renders[page].GetRenderPosition()
 		snippet.DrawSnippet(s, renderColumn, renderRow+1, completions, index, len(completions)*(selectedIndex)/completionTotalCount)
 	}
-	render[page].UpdateShowCursor(s)
+	renders[page].UpdateShowCursor(s)
 }
 
 func main() {
@@ -219,7 +219,7 @@ func main() {
 		1,
 		false,
 	)
-	render = []rend.Render{rr}
+	renders = []rend.Render{rr}
 
 	for {
 		refresh(s)
@@ -234,7 +234,7 @@ func main() {
 		switch ev := ev.(type) {
 		case *tcell.EventResize:
 			s.Sync()
-			render[page].UpdateWindowSize(s)
+			renders[page].UpdateWindowSize(s)
 		case *tcell.EventKey:
 			editorProcessKeyPress(s, ev)
 		case *tcell.EventMouse:
