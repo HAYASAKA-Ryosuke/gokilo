@@ -147,7 +147,7 @@ func loadFile(s tcell.Screen, filePath string) {
 	rowLength := len(rows)
 	for i := 0; i < rowLength; i++ {
 		renders[page].EditorInsertText(rows[i])
-		if i != rowLength-1 {
+		if i < rowLength-1 {
 			renders[page].EditorInsertNewline(s)
 		}
 	}
