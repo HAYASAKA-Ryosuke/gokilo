@@ -134,6 +134,40 @@ func (l *Lsp) Completion(filePath string, row uint32, col uint32) *p.CompletionL
 	return &result
 }
 
+func (l *Lsp) DidChange(text string) *Response {
+	params := p.DidChangeTextDocumentParams{
+		TextDocument: p.VersionedTextDocumentIdentifier{
+			Version: 1,
+		},
+		ContentChanges: []p.TextDocumentContentChangeEvent{{Text: text}},
+	}
+	response := l.sendCommand(l.Id, p.MethodTextDocumentDidChange, params)
+	return response
+}
+
+func (l *Lsp) Hover(filePath string, row uint32, col uint32) *Response {
+	params := p.HoverParams{
+		TextDocumentPositionParams: p.TextDocumentPositionParams{
+			TextDocument: p.TextDocumentIdentifier{URI: getURI(filePath)},
+			Position:     p.Position{Line: row, Character: col},
+		},
+	}
+	response := l.sendCommand(l.Id, p.MethodTextDocumentHover, params)
+	return response
+}
+
+func (l *Lsp) Definition() *Response {
+	params := p.DefinitionTextDocumentClientCapabilities{DynamicRegistration: true}
+	response := l.sendCommand(l.Id, p.MethodTextDocumentReferences, params)
+	return response
+}
+
+func (l *Lsp) References() *Response {
+	params := p.ReferencesTextDocumentClientCapabilities{DynamicRegistration: true}
+	response := l.sendCommand(l.Id, p.MethodTextDocumentReferences, params)
+	return response
+}
+
 func (l *Lsp) Shutdown() error {
 	response := l.sendCommand(l.Id, p.MethodShutdown, map[string]interface{}{})
 	if response.Error != nil {
@@ -199,6 +233,7 @@ func (l *Lsp) sendCommand(id int, method string, params interface{}) *Response {
 			return nil
 		}
 
+		log.Println(response.Result)
 		// 異なるIDの通信は無視
 		if response.ID != l.Id {
 			continue

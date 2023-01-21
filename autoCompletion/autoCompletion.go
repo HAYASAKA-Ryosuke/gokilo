@@ -38,7 +38,7 @@ func (a *AutoCompletion) GetCompletions(maxLength int) ([]string, int, int, int)
 		if a.autoCompletionList.selectedIndex >= maxLength {
 			return a.autoCompletionList.list[a.autoCompletionList.selectedIndex-maxLength+1 : a.autoCompletionList.selectedIndex+1], maxLength - 1, a.autoCompletionList.selectedIndex, len(a.autoCompletionList.list)
 		} else {
-			return a.autoCompletionList.list[:maxLength], a.autoCompletionList.selectedIndex, a.autoCompletionList.selectedIndex, len(a.autoCompletionList.list)
+			return a.autoCompletionList.list, a.autoCompletionList.selectedIndex, a.autoCompletionList.selectedIndex, len(a.autoCompletionList.list)
 		}
 	}
 	return []string{}, 0, 0, 0
