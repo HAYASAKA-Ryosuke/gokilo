@@ -8,8 +8,10 @@ import (
 	"gokilo/lsp"
 	rend "gokilo/render"
 	"gokilo/snippet"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -136,14 +138,30 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	}
 }
 
+func loadFile(s tcell.Screen, filePath string) {
+	text, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rows := strings.Split(string(text), renders[page].GetNewlineCHar())
+	rowLength := len(rows)
+	for i := 0; i < rowLength; i++ {
+		renders[page].EditorInsertText(rows[i])
+		if i != rowLength-1 {
+			renders[page].EditorInsertNewline(s)
+		}
+	}
+	renders[page].CursorJump(s, 0, 0)
+}
+
 func fileSave() {
 	var f *os.File
 	f, _ = os.Create(renders[page].GetCurrentFilePath())
+	defer f.Close()
 
 	saveData := renders[page].GetAllText()
 	n, _ := f.WriteString(saveData)
 	renders[page].SetDebug(fmt.Sprintf("save: %d", n))
-	f.Close()
 }
 
 func getArgs() string {
@@ -220,6 +238,7 @@ func main() {
 		false,
 	)
 	renders = []rend.Render{rr}
+	loadFile(s, currentFilePath)
 
 	for {
 		refresh(s)

@@ -246,6 +246,10 @@ func (render *Render) EditorScroll(c tcell.Screen) {
 	}
 }
 
+func (render *Render) GetNewlineCHar() string {
+	return render.newlineChar
+}
+
 func (render *Render) GetAllText() string {
 	result := ""
 	for i := 0; i < len(render.editorRows); i++ {
@@ -392,6 +396,13 @@ func (render *Render) EditorDeleteChar(s tcell.Screen) {
 			render.DeleteRow()
 		}
 	}
+}
+
+func (render *Render) CursorJump(s tcell.Screen, row int, col int) {
+	render.currentRow = row
+	render.currentColumn = col
+	render.UpdateRenderRowAndColumn(s)
+
 }
 
 func (render *Render) CursorMove(to string) {
