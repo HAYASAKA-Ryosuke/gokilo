@@ -156,6 +156,20 @@ func (l *Lsp) Hover(filePath string, row uint32, col uint32) *Response {
 	return response
 }
 
+func (l *Lsp) Rename(filePath string, row uint32, col uint32, newName string) *Response {
+	params := p.RenameParams{
+		TextDocumentPositionParams: p.TextDocumentPositionParams{
+			TextDocument: p.TextDocumentIdentifier{
+				URI: getURI(filePath),
+			},
+			Position: p.Position{Line: row, Character: col},
+		},
+		NewName: newName,
+	}
+	response := l.sendCommand(l.Id, p.MethodTextDocumentRename, params)
+	return response
+}
+
 func (l *Lsp) Definition() *Response {
 	params := p.DefinitionTextDocumentClientCapabilities{DynamicRegistration: true}
 	response := l.sendCommand(l.Id, p.MethodTextDocumentReferences, params)
