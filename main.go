@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -71,7 +72,7 @@ func keyRight() {
 func keyCtrlP() {
 	autoCompletion.SetEnabled(!autoCompletion.IsEnabled())
 	currentRow, currentColumn := renders[page].GetCurrentPosition()
-	autoCompletion.UpdateAutoCompletion(renders[page].GetCurrentFilePath(), LSP, currentRow, currentColumn)
+	autoCompletion.UpdateAutoCompletion(renders[page].GetCurrentFilePath(), LSP, currentRow, currentColumn-1)
 }
 
 func keyCtrlS() {
@@ -98,8 +99,13 @@ func keyEscape() {
 
 }
 
-func otherKey(ev *tcell.EventKey) {
+func otherKey(s tcell.Screen, ev *tcell.EventKey) {
 	renders[page].EditorInsertText(string(ev.Rune()))
+	currentRow, currentColumn := renders[page].GetCurrentPosition()
+	log.Println(renders[page].GetRowText(currentRow))
+	LSP.DidChange(renders[page].GetRowText(currentRow), uint32(currentRow), 0, uint32(currentColumn))
+	autoCompletion.UpdateAutoCompletion(renders[page].GetCurrentFilePath(), LSP, currentRow, currentColumn)
+	drawCompletion(s)
 }
 
 func quit(s tcell.Screen) {
@@ -134,7 +140,7 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 	case tcell.KeyCtrlS:
 		keyCtrlS()
 	default:
-		otherKey(ev)
+		otherKey(s, ev)
 	}
 }
 
@@ -152,6 +158,7 @@ func loadFile(s tcell.Screen, filePath string) {
 		}
 	}
 	renders[page].CursorJump(s, 0, 0)
+	LSP.DidOpen(filePath)
 }
 
 func fileSave() {
@@ -171,7 +178,17 @@ func getArgs() string {
 		path, _ := os.Getwd()
 		return path + "/test.go"
 	} else {
-		return args[0]
+		apath, _ := filepath.Abs(args[0])
+		return apath
+	}
+}
+
+func drawCompletion(s tcell.Screen) {
+	completions, index, selectedIndex, completionTotalCount := autoCompletion.GetCompletions(5)
+	if completionTotalCount > 0 {
+		renders[page].SetDebug(fmt.Sprintf("%d,%d,%d,%d", len(completions), index, completionTotalCount, len(completions)*(selectedIndex)/completionTotalCount))
+		renderRow, renderColumn := renders[page].GetRenderPosition()
+		snippet.DrawSnippet(s, renderColumn, renderRow+1, completions, index, len(completions)*(selectedIndex)/completionTotalCount)
 	}
 }
 
@@ -180,12 +197,7 @@ func refresh(s tcell.Screen) {
 	s.Clear()
 	renders[page].UpdateRenderRowAndColumn(s)
 	renders[page].EditorDrawRows(s)
-	completions, index, selectedIndex, completionTotalCount := autoCompletion.GetCompletions(5)
-	if completionTotalCount > 0 {
-		renders[page].SetDebug(fmt.Sprintf("%d,%d,%d,%d", len(completions), index, completionTotalCount, len(completions)*(selectedIndex)/completionTotalCount))
-		renderRow, renderColumn := renders[page].GetRenderPosition()
-		snippet.DrawSnippet(s, renderColumn, renderRow+1, completions, index, len(completions)*(selectedIndex)/completionTotalCount)
-	}
+	drawCompletion(s)
 	renders[page].UpdateShowCursor(s)
 }
 

@@ -1,6 +1,9 @@
 package autoCompletion
 
-import "gokilo/lsp"
+import (
+	"gokilo/lsp"
+	"log"
+)
 
 type CompletionInfo struct {
 	icon string
@@ -59,11 +62,13 @@ func (a *AutoCompletion) UpdateAutoCompletion(path string, lsp *lsp.Lsp, row int
 		return
 	}
 	completionList := lsp.Completion(path, uint32(row), uint32(column))
+	log.Println("completion!")
 	if len(completionList.Items) > 0 {
 		completionItems := []string{}
 		for _, item := range completionList.Items {
 			completionItems = append(completionItems, item.Label)
 		}
+		log.Println(completionItems)
 		a.autoCompletionList = AutoCompletionList{list: completionItems, selectedIndex: 0}
 	}
 }

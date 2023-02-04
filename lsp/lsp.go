@@ -33,6 +33,7 @@ type Response struct {
 
 type Lsp struct {
 	Id      int
+	Version int32
 	Command *exec.Cmd
 	Writer  io.WriteCloser
 	Reader  io.ReadCloser
@@ -44,7 +45,7 @@ func NewLsp(lspServerPath string) *Lsp {
 	stdin, _ := command.StdinPipe()
 	stdout, _ := command.StdoutPipe()
 	command.Start()
-	return &Lsp{Id: 1321, Command: command, Writer: stdin, Reader: stdout}
+	return &Lsp{Id: 1321, Version: 1, Command: command, Writer: stdin, Reader: stdout}
 }
 
 func (l *Lsp) Close() {
@@ -92,7 +93,7 @@ func (l *Lsp) DidOpen(filePath string) *Response {
 	didOpenParams := p.DidOpenTextDocumentParams{
 		TextDocument: p.TextDocumentItem{
 			Text:       string(text),
-			Version:    1,
+			Version:    l.Version,
 			LanguageID: "go",
 			URI:        uri,
 		},
@@ -134,14 +135,19 @@ func (l *Lsp) Completion(filePath string, row uint32, col uint32) *p.CompletionL
 	return &result
 }
 
-func (l *Lsp) DidChange(text string) *Response {
+func (l *Lsp) DidChange(text string, row, startCol, endCol uint32) *Response {
 	params := p.DidChangeTextDocumentParams{
 		TextDocument: p.VersionedTextDocumentIdentifier{
-			Version: 1,
+			Version: l.Version,
 		},
-		ContentChanges: []p.TextDocumentContentChangeEvent{{Text: text}},
+		ContentChanges: []p.TextDocumentContentChangeEvent{{
+			Range:       p.Range{Start: p.Position{Line: row, Character: startCol}, End: p.Position{Line: row, Character: endCol}},
+			RangeLength: uint32(len(text)),
+			Text:        text,
+		}},
 	}
 	response := l.sendCommand(l.Id, p.MethodTextDocumentDidChange, params)
+	l.Version++
 	return response
 }
 

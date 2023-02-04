@@ -254,11 +254,15 @@ func (render *Render) GetAllText() string {
 	result := ""
 	for i := 0; i < len(render.editorRows); i++ {
 		result += render.editorRows[i].text
-		if i-1 != len(render.editorRows) {
+		if i < len(render.editorRows)-1 {
 			result += render.newlineChar
 		}
 	}
 	return result
+}
+
+func (render *Render) GetRowText(row int) string {
+	return render.editorRows[row].text
 }
 
 func (render *Render) GetEditorRows() []EditorRow {
@@ -320,6 +324,12 @@ func (render *Render) UpdateRenderRowAndColumn(s tcell.Screen) {
 	if render.renderRow > render.windowSizeRow-render.statusBarOffset {
 		render.renderRow = render.windowSizeRow - render.statusBarOffset
 	}
+}
+
+func (render *Render) EditorClearAll() {
+	editorRows := []EditorRow{}
+	editorRows = append(editorRows, EditorRow{"", "", 0, 0})
+	render.editorRows = editorRows
 }
 
 func (render *Render) EditorInsertText(text string) {
