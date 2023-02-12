@@ -142,7 +142,7 @@ func (render *Render) drawContent(s tcell.Screen, column, row int, text string, 
 
 }
 
-func (render *Render) DrawStatusBar(s tcell.Screen) {
+func (render *Render) DrawBottomBar(s tcell.Screen) {
 	//DEBUG = fmt.Sprintf("cCol %d, cRow %d, rCol %d, rRow %d, rowCol %d, rowRow %d, rowOffset %d", currentColumn, currentRow, renderColumn, renderRow, editorRows[currentRow].renderColumnLength, editorRows[currentRow].renderRowOffset, rowOffset)
 	style := tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorReset)
 	text := fmt.Sprintf("status %d, %d, %d, %d, %s", render.currentColumn, render.currentRow, render.renderColumn, render.renderRow, render.debug)
@@ -205,7 +205,7 @@ func (render *Render) EditorDrawRows(s tcell.Screen) {
 	//		drawContent(s, 0, row, fmt.Sprintf("%d", row+rowOffset+1), defStyle)
 	//	}
 	//}
-	render.DrawStatusBar(s)
+	render.DrawBottomBar(s)
 }
 
 func (render *Render) EditorScroll(c tcell.Screen) {
