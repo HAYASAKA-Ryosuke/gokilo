@@ -118,9 +118,9 @@ func (l *Lsp) Completion(filePath string, row uint32, col uint32) *p.CompletionL
 			Position:     p.Position{Line: row, Character: col},
 			TextDocument: p.TextDocumentIdentifier{URI: getURI(filePath)},
 		},
-		Context: &p.CompletionContext{
-			TriggerKind: 1,
-		},
+		//Context: &p.CompletionContext{
+		//	TriggerKind: 1,
+		//},
 	}
 	response := l.sendCommand(l.Id, p.MethodTextDocumentCompletion, params)
 	b, err := json.Marshal(response.Result)
@@ -135,13 +135,16 @@ func (l *Lsp) Completion(filePath string, row uint32, col uint32) *p.CompletionL
 	return &result
 }
 
-func (l *Lsp) DidChange(text string, row, startCol, endCol uint32) *Response {
+func (l *Lsp) DidChange(filePath, text string, row, startCol, endCol uint32) *Response {
 	params := p.DidChangeTextDocumentParams{
 		TextDocument: p.VersionedTextDocumentIdentifier{
 			Version: l.Version,
+			TextDocumentIdentifier: p.TextDocumentIdentifier{
+				URI: getURI(filePath),
+			},
 		},
 		ContentChanges: []p.TextDocumentContentChangeEvent{{
-			Range:       p.Range{Start: p.Position{Line: row, Character: startCol}, End: p.Position{Line: row, Character: endCol}},
+			Range:       p.Range{Start: p.Position{Line: row, Character: startCol}, End: p.Position{Line: row, Character: 0}},
 			RangeLength: uint32(len(text)),
 			Text:        text,
 		}},

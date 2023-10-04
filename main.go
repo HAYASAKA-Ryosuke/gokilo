@@ -17,6 +17,13 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+type EditorMode int
+
+const (
+	InsertMode EditorMode = iota
+	CommandMode
+)
+
 type EditorRow struct {
 	text               string // データとしてもっておく文字列
 	renderText         string // 表示用の文字列
@@ -29,6 +36,7 @@ var (
 	renders        = []rend.Render{}
 	autoCompletion = &ac.AutoCompletion{}
 	page           = 0
+	editorMode     = InsertMode
 )
 
 func keyEnter(s tcell.Screen) {
@@ -99,11 +107,15 @@ func keyEscape() {
 
 }
 
+func keyCtrlSpace() {
+	editorMode = CommandMode
+}
+
 func otherKey(s tcell.Screen, ev *tcell.EventKey) {
 	renders[page].EditorInsertText(string(ev.Rune()))
 	currentRow, currentColumn := renders[page].GetCurrentPosition()
 	log.Println(renders[page].GetRowText(currentRow))
-	LSP.DidChange(renders[page].GetRowText(currentRow), uint32(currentRow), 0, uint32(currentColumn))
+	LSP.DidChange(renders[page].GetCurrentFilePath(), renders[page].GetRowText(currentRow), uint32(currentRow), 0, uint32(currentColumn))
 	autoCompletion.UpdateAutoCompletion(renders[page].GetCurrentFilePath(), LSP, currentRow, currentColumn)
 	drawCompletion(s)
 }
@@ -139,6 +151,8 @@ func editorProcessKeyPress(s tcell.Screen, ev *tcell.EventKey) {
 		keyUp()
 	case tcell.KeyCtrlS:
 		keyCtrlS()
+	case tcell.KeyCtrlSpace:
+		keyCtrlSpace()
 	default:
 		otherKey(s, ev)
 	}
