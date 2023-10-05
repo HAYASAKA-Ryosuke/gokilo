@@ -144,9 +144,8 @@ func (l *Lsp) DidChange(filePath, text string, row, startCol, endCol uint32) *Re
 			},
 		},
 		ContentChanges: []p.TextDocumentContentChangeEvent{{
-			Range:       p.Range{Start: p.Position{Line: row, Character: startCol}, End: p.Position{Line: row, Character: 0}},
-			RangeLength: uint32(len(text)),
-			Text:        text,
+			Range: p.Range{Start: p.Position{Line: row, Character: startCol}, End: p.Position{Line: row, Character: 0}},
+			Text:  text + "\n",
 		}},
 	}
 	response := l.sendCommand(l.Id, p.MethodTextDocumentDidChange, params)
