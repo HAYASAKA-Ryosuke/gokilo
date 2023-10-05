@@ -17,13 +17,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-type EditorMode int
-
-const (
-	InsertMode EditorMode = iota
-	CommandMode
-)
-
 type EditorRow struct {
 	text               string // データとしてもっておく文字列
 	renderText         string // 表示用の文字列
@@ -36,7 +29,6 @@ var (
 	renders        = []rend.Render{}
 	autoCompletion = &ac.AutoCompletion{}
 	page           = 0
-	editorMode     = InsertMode
 )
 
 func keyEnter(s tcell.Screen) {
@@ -108,7 +100,6 @@ func keyEscape() {
 }
 
 func keyCtrlSpace() {
-	editorMode = CommandMode
 }
 
 func otherKey(s tcell.Screen, ev *tcell.EventKey) {

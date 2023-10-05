@@ -255,7 +255,6 @@ func (l *Lsp) sendCommand(id int, method string, params interface{}) *Response {
 			return nil
 		}
 
-		log.Println(response.Result)
 		// 異なるIDの通信は無視
 		if response.ID != l.Id {
 			continue
